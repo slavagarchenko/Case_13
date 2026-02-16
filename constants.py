@@ -1,0 +1,19 @@
+
+GASOLINE_PRICES = {
+    'АИ-80': 45.5,
+    'АИ-92': 48.7,
+    'АИ-95': 52.3,
+    'АИ-98': 56.8
+}
+
+
+VALID_GASOLINE_TYPES = ['АИ-80', 'АИ-92', 'АИ-95', 'АИ-98']
+
+
+MINUTES_IN_DAY = 24 * 60
+REFUELING_RATE = 10
+
+
+NEW_COLUMN_COST = 5000000
+MONTHLY_OPERATING_COST = 100000
+POTENTIAL_RECAPTURE_RATE = 0.5
