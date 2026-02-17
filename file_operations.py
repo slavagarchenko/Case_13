@@ -135,8 +135,10 @@ def read_input(filepath: str = 'input.txt') -> List[Dict[str, Any]]:
     return requests
 
 
-def calculate_refueling_time(requests: List[Dict[str, Any]],
-                             columns: List[Dict[str, Any]]) -> int:
+def calculate_refueling_time(
+        requests: List[Dict[str, Any]],
+        columns: List[Dict[str, Any]]
+) -> int:
     """
     Calculate total time needed to process all refueling requests.
 
@@ -209,9 +211,20 @@ def calculate_refueling_time(requests: List[Dict[str, Any]],
     return max_finish_time
 
 
-def print_refueling_summary(columns: List[Dict[str, Any]],
-                            requests: List[Dict[str, Any]]) -> None:
-    """Print summary of refueling time calculation."""
+def print_refueling_summary(
+        columns: List[Dict[str, Any]],
+        requests: List[Dict[str, Any]]
+) -> None:
+    """
+    Print summary of refueling time calculation.
+
+    Args:
+        requests: List of refueling requests.
+        columns: List of column information.
+
+    Returns:
+        None.
+    """
     print(ru.CALCULATION["title"])
     print(ru.CALCULATION['columns_count'].format(len(columns)))
     print(ru.CALCULATION['requests_count'].format(len(requests)))

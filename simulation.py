@@ -7,23 +7,58 @@ import constants
 
 
 def minutes_to_time(minutes: int) -> str:
-    """Convert minutes since midnight to 'HH:MM' format."""
+    """
+        Convert minutes since midnight to 'HH:MM' format.
+
+        Args:
+            minutes (int): Minutes since midnight (0 to 1439).
+
+        Returns:
+            str: Time string in 'HH:MM' format.
+        """
     minutes = minutes % constants.MINUTES_IN_DAY
     hours = minutes // 60
     mins = minutes % 60
+
     return f"{hours:02d}:{mins:02d}"
 
 
 def calculate_service_time(fuel_amount: int) -> int:
-    """Calculate service time with random variation."""
+    """
+    Calculate service time with random variation.
+
+    Base time is calculated based on refueling rate, then
+    a random variation of -1, 0, or 1 minute is applied.
+
+    Args:
+        fuel_amount (int): Amount of fuel in liters.
+
+    Returns:
+        int: Service time in minutes (minimum 1 minute).
+    """
     base_time = math.ceil(fuel_amount / constants.REFUELING_RATE)
     variation = random.choice([-1, 0, 1])
+
     return max(1, base_time + variation)
 
 
-def prepare_columns_data(columns_info: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Prepare column data structure for simulation."""
+def prepare_columns_data(
+        columns_info: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """
+       Prepare column data structure for simulation.
+
+       Creates a standardized data structure for each refueling column,
+       initializing all tracking fields to their default values.
+
+       Args:
+           columns_info (List[Dict[str, Any]]): Raw column configuration data.
+
+       Returns:
+           List[Dict[str, Any]]: Prepared column data sorted by column number.
+       """
     columns = []
+
     for col in columns_info:
         column_data = {
             'number': col['column_number'],
@@ -38,13 +73,31 @@ def prepare_columns_data(columns_info: List[Dict[str, Any]]) -> List[Dict[str, A
             'max_queue_observed': 0
         }
         columns.append(column_data)
+
     return sorted(columns, key=lambda x: x['number'])
 
 
-def find_best_column(columns: List[Dict[str, Any]],
-                     fuel_type: str) -> Optional[Dict[str, Any]]:
-    """Find the best column for a client based on queue length."""
+def find_best_column(
+        columns: List[Dict[str, Any]],
+        fuel_type: str
+) -> Optional[Dict[str, Any]]:
+    """
+        Find the best column for a client based on queue length.
+
+        Considers only columns that support the requested fuel type and have
+        available queue slots. Selects the column with shortest queue,
+        breaking ties by column number.
+
+        Args:
+            columns (List[Dict[str, Any]]): List of all refueling columns.
+            fuel_type (str): Type of fuel requested.
+
+        Returns:
+            Optional[Dict[str, Any]]: Best matching column or 
+                None if no suitable column found.
+        """
     suitable = []
+
     for col in columns:
         if (fuel_type in col['fuel_types'] and
                 len(col['queue']) < col['max_queue']):
@@ -58,20 +111,31 @@ def find_best_column(columns: List[Dict[str, Any]],
         return None
 
     suitable.sort(key=lambda x: (x['queue_length'], x['number']))
+
     return suitable[0]['column']
 
 
 def display_columns_state(columns: List[Dict[str, Any]]) -> None:
-    """Display current state of all columns."""
+    """
+       Display current state of all columns.
+
+       Shows each column's number, capacity, supported fuel types,
+       and current queue with service times.
+
+       Args:
+           columns (List[Dict[str, Any]]): List of all refueling columns.
+       """
     for col in sorted(columns, key=lambda x: x['number']):
         queue_str = ''
+
         for client in col['queue']:
             queue_str += ru.COLUMN["queue_marker"] + \
                 str(client['service_time'])
 
         if col['current_client']:
             queue_str = (ru.COLUMN["queue_marker"] +
-                         str(col['current_client']['service_time']) + queue_str)
+                         str(col['current_client']['service_time']) +
+                         queue_str)
 
         if not queue_str:
             queue_str = ru.COLUMN["empty_queue"]
@@ -82,9 +146,27 @@ def display_columns_state(columns: List[Dict[str, Any]]) -> None:
         ))
 
 
-def process_arrival(client: Dict[str, Any], columns: List[Dict[str, Any]],
-                    current_time: int, stats: Dict[str, int]) -> Optional[Dict[str, Any]]:
-    """Process a new client arrival."""
+def process_arrival(
+        client: Dict[str, Any], columns: List[Dict[str, Any]],
+        current_time: int, stats: Dict[str, int]) -> Optional[Dict[str, Any]]:
+    """
+        Process a new client arrival.
+
+        Handles client arrival event, attempts to assign them to a 
+        suitable column, updates statistics, 
+        and may start service if column is free.
+
+        Args:
+            client (Dict[str, Any]): Client data including fuel type and amount.
+            columns (List[Dict[str, Any]]): List of refueling columns.
+            current_time (int): Current simulation time.
+            stats (Dict[str, int]): Statistics dictionary 
+                for tracking served/rejected clients.
+
+        Returns:
+            Optional[Dict[str, Any]]: Departure event 
+                if service started immediately, None otherwise.
+        """
     fuel_type = client['fuel_type']
     fuel_amount = client['value']
     service_time = calculate_service_time(fuel_amount)
@@ -110,6 +192,7 @@ def process_arrival(client: Dict[str, Any], columns: List[Dict[str, Any]],
     best_column['queue'].append(queue_client)
 
     current_queue_len = len(best_column['queue'])
+
     if current_queue_len > best_column['max_queue_observed']:
         best_column['max_queue_observed'] = current_queue_len
 
@@ -126,7 +209,20 @@ def process_arrival(client: Dict[str, Any], columns: List[Dict[str, Any]],
 
 def start_service(column: Dict[str, Any],
                   current_time: int) -> Optional[Dict[str, Any]]:
-    """Start serving the next client in queue."""
+    """
+        Start serving the next client in queue.
+
+        Removes first client from queue, sets them as current client,
+        calculates service completion time, and updates column statistics.
+
+        Args:
+            column (Dict[str, Any]): Column where service will start.
+            current_time (int): Current simulation time.
+
+        Returns:
+            Optional[Dict[str, Any]]: Departure event for scheduled 
+                service completion, None if no client to serve.
+        """
     if not column['queue'] or column['current_client'] is not None:
         return None
 
@@ -149,9 +245,26 @@ def start_service(column: Dict[str, Any],
     }
 
 
-def process_departure(event: Dict[str, Any], columns: List[Dict[str, Any]],
-                      current_time: int, stats: Dict[str, int]) -> Optional[Dict[str, Any]]:
-    """Process a client departure."""
+def process_departure(
+        event: Dict[str, Any], columns: List[Dict[str, Any]],
+        current_time: int, stats: Dict[str, int]) -> Optional[Dict[str, Any]]:
+    """
+       Process a client departure.
+
+       Handles client departure event, frees up the column,
+       updates statistics, and may start service for next client.
+
+       Args:
+           event (Dict[str, Any]): Departure event data.
+           columns (List[Dict[str, Any]]): List of refueling columns.
+           current_time (int): Current simulation time.
+           stats (Dict[str, int]): Statistics dictionary for tracking 
+                served/rejected clients.
+
+       Returns:
+           Optional[Dict[str, Any]]: Next departure event 
+                if service starts immediately,None otherwise.
+       """
     column = next((c for c in columns if c['number'] == event['column']), None)
 
     if column and column['current_client'] is not None:
@@ -180,9 +293,26 @@ def process_departure(event: Dict[str, Any], columns: List[Dict[str, Any]],
     return None
 
 
-def run_simulation(columns_info: List[Dict[str, Any]],
-                   clients_data: List[Dict[str, Any]]) -> Tuple[Dict[str, int], List[Dict]]:
-    """Run the complete gas station simulation."""
+def run_simulation(
+        columns_info: List[Dict[str, Any]],
+        clients_data: List[Dict[str, Any]]
+) -> Tuple[Dict[str, int], List[Dict]]:
+    """
+       Run the complete gas station simulation.
+
+       Main simulation function that processes arrival and departure events
+       using a priority queue (event-driven simulation). Tracks statistics
+       and column states throughout the simulation.
+
+       Args:
+           columns_info (List[Dict[str, Any]]): Configuration data 
+                        for refueling columns.
+           clients_data (List[Dict[str, Any]]): List of client arrival events.
+
+       Returns:
+           Tuple[Dict[str, int], List[Dict]]: Final statistics 
+                        and final column states.
+       """
     columns = prepare_columns_data(columns_info)
 
     print("\n" + "=" * 60)

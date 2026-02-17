@@ -3,9 +3,29 @@ import ru_local as ru
 import constants
 
 
-def calculate_statistics(stats: Dict[str, int],
-                         columns: List[Dict[str, Any]]) -> None:
-    """Calculate and display final simulation statistics."""
+def calculate_statistics(
+        stats: Dict[str, int],
+        columns: List[Dict[str, Any]]
+) -> None:
+    """
+        Calculate and display final simulation statistics.
+
+        Analyzes the simulation results including:
+        - Total fuel sales by brand and corresponding revenue.
+        - Lost revenue analysis from rejected clients.
+        - Column utilization metrics 
+                (served clients, liters sold, queue lengths).
+        - Profitability analysis and recommendations for business improvements.
+        - Per-column detailed statistics.
+
+        Args:
+            stats (Dict[str, int]): Simulation statistics containing 
+                                    'served' and 'rejected' counts.
+            columns (List[Dict[str, Any]]): List of column data structures 
+                                    with sales information.
+        Returns:
+            None
+        """
     print(ru.STATISTICS["simulation_period"])
     print()
 
@@ -86,10 +106,13 @@ def calculate_statistics(stats: Dict[str, int],
 
         if payback < 24:
             print(ru.PROFITABILITY["recommend_yes"])
+
         elif payback < 36:
             print(ru.PROFITABILITY["recommend_maybe"])
+
         else:
             print(ru.PROFITABILITY["recommend_no"])
+
     else:
         print(ru.PROFITABILITY["covers_no"])
 
@@ -97,6 +120,7 @@ def calculate_statistics(stats: Dict[str, int],
 
     loss_percentage = (stats['rejected'] /
                        (stats['served'] + stats['rejected'])) * 100
+
     if loss_percentage > 20:
         print(ru.PROFITABILITY["high_loss"].format(loss_percentage))
 
@@ -104,6 +128,7 @@ def calculate_statistics(stats: Dict[str, int],
         c for c in column_utilization if c['max_observed'] >= c['max_queue']]
     if overloaded:
         print(ru.PROFITABILITY["increase_queue"])
+
         for col in overloaded:
             print(ru.PROFITABILITY["column_item"].format(
                 col['number'], col['max_queue'], col['max_observed']))
